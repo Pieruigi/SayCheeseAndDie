@@ -6,13 +6,19 @@ using UnityEngine.TextCore.Text;
 
 namespace SCAD
 {
-    public class PlayerController : MonoBehaviour
+    public class PlayerController : Singleton<PlayerController>
     {
         [SerializeField]
         GameObject playerCamera;
 
         [SerializeField]
-        float maxSpeed = 3;
+        float normalSpeed = 3;
+
+        [SerializeField]
+        float stealthSpeed = 1.5f;
+
+        [SerializeField]
+        float runSpeed = 5;
 
         [SerializeField]
         float turnSpeed = 90;
@@ -24,12 +30,33 @@ namespace SCAD
         float deceleration = 50;
 
         [SerializeField]
-        float sprintMultiply = 2f;
+        float normalNoiseRange = 3;
 
         [SerializeField]
-        float walkMultiply = .5f;
+        float stealthNoiseRange = 1.5f;
+
+        [SerializeField]
+        float runNoiseRange = 6;
+
+        [SerializeField]
+        float ratAvoidanceRadius = 3f;
+
+
+        float maxSpeed = 3;
+
+        float maxNoiseRange;
+
+        float noiseRange;
+        public float NoiseRange
+        {
+            get { return noiseRange; }
+        }
 
         Vector3 currentVelocity;
+        public float Speed
+        {
+            get{ return currentVelocity.magnitude; }
+        }
 
         CharacterController characterController;
 
@@ -39,7 +66,7 @@ namespace SCAD
         float aimSpeed = 90;
 
         [SerializeField]
-        [Range(1,10)]
+        [Range(1, 10)]
         float mouseSensitivity = 5.5f;
 
         float yaw = 0;
@@ -50,15 +77,14 @@ namespace SCAD
 
         bool inversePitch = false;
 
-        bool walking = false;
-        bool sprinting = false;
 
-
-        void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             characterController = GetComponent<CharacterController>();
             yaw = transform.eulerAngles.y;
             pitch = 0;
+
 
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -84,22 +110,25 @@ namespace SCAD
         {
             Vector3 targetDirection;
             float targetSpeed;
-            
+
+
             if (moveInput.magnitude < Mathf.Epsilon)
             {
+                noiseRange = 0;
                 targetDirection = transform.forward; // Keep forward direction
                 targetSpeed = Mathf.MoveTowards(currentVelocity.magnitude, 0f, deceleration * Time.deltaTime);
             }
             else
             {
+                noiseRange = maxNoiseRange;
                 targetDirection = transform.TransformDirection(new Vector3(moveInput.x, 0, moveInput.y)).normalized;
                 targetSpeed = Mathf.MoveTowards(currentVelocity.magnitude, maxSpeed, acceleration * Time.deltaTime);
             }
 
-            if(currentVelocity.magnitude > Mathf.Epsilon)
+            if (currentVelocity.magnitude > Mathf.Epsilon)
                 targetDirection = Vector3.RotateTowards(currentVelocity.normalized, targetDirection, turnSpeed * Time.deltaTime, 0f).normalized;
-           
-           
+
+
             currentVelocity = targetDirection * targetSpeed;
 
             characterController.Move(currentVelocity * Time.deltaTime);
@@ -114,7 +143,7 @@ namespace SCAD
             characterController.transform.eulerAngles = Vector3.up * yaw;
 
             pitch += aimSpeed * mouseSensitivity * aimInput.y * Time.deltaTime * (inversePitch ? 1 : -1);
-            
+
             pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
 
             playerCamera.transform.localEulerAngles = Vector3.right * pitch;
@@ -125,7 +154,25 @@ namespace SCAD
         {
             moveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
             aimInput = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
+            maxSpeed = normalSpeed;
+            maxNoiseRange = normalNoiseRange;
+
+            if (Input.GetKey(KeyBinding.StealthKey))
+            {
+                maxSpeed = stealthSpeed;
+                maxNoiseRange = stealthNoiseRange;
+            }
+            else if (Input.GetKey(KeyBinding.SprintKey))
+            {
+                maxSpeed = runSpeed;
+                maxNoiseRange = runNoiseRange;
+            }
+
+
+
         }
+        
+
     }
     
 }
