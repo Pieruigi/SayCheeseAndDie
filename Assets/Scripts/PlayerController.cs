@@ -38,9 +38,7 @@ namespace SCAD
         [SerializeField]
         float runNoiseRange = 6;
 
-        [SerializeField]
-        float ratAvoidanceRadius = 3f;
-
+      
 
         float maxSpeed = 3;
 

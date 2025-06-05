@@ -59,15 +59,15 @@ namespace SCAD
                 var hole = tmpList[Random.Range(0, tmpList.Count)];
 
                 // Get the target hole
-                tmpList = holes.OrderByDescending(obj => Vector3.Distance(obj.transform.position, hole.transform.position)).Take(5).ToList();
-                var target = tmpList[Random.Range(0, tmpList.Count)];
+                // tmpList = holes.OrderByDescending(obj => Vector3.Distance(obj.transform.position, hole.transform.position)).Take(5).ToList();
+                // var target = tmpList[Random.Range(0, tmpList.Count)];
 
                 // Create a new rat
                 var rat = Instantiate(ratPrefab, hole.transform.position, hole.transform.rotation);
                 rats.Add(rat);
 
                 // Initialize rat
-                rat.GetComponent<RatController>().Init(hole, target);
+                //rat.GetComponent<RatController>().Init(hole, target);
             }
 
 

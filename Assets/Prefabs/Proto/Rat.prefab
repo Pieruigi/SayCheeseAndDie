@@ -68,6 +68,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60fe9dcd99dd9e64b97549c11fee3685, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  sightRange: 8
+  avoidanceRadius: 3
+  avoiderHelperPrefab: {fileID: 8682955269503357806, guid: d7846760a4bc3f2439035e89c750defa, type: 3}
 --- !u!1 &8427258907626205681
 GameObject:
   m_ObjectHideFlags: 0
