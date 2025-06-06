@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using Palmmedia.ReportGenerator.Core.Parser.Analysis;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.AI;
@@ -19,32 +20,49 @@ namespace SCAD
         RatState state = RatState.MoveToDest;
 
         [SerializeField]
-        float sightRange = 8;
-
-        [SerializeField]
-        float avoidanceRadius = 3;
+        float avoidanceRadius = 8;
         Vector3 startingPosition;
-        
-       
+
+        NavMeshObstacle playerObstacle;
+
+        NavMeshPath cachedPath;
+
+        Vector3 destination;
+
+        float pathUpdateRate = .5f;
+
+
+        float pathUpdateElapsed = 0;
+
 
         void Awake()
         {
             agent = GetComponent<NavMeshAgent>();
             startingPosition = transform.position;
+            agent.isStopped = true;
+    
         }
 
         // Start is called before the first frame update
         void Start()
         {
-            // Compute initial path
+
             var tmpList = LevelController.Instance.Holes.Where(obj => Vector3.Distance(obj.transform.position, transform.position) > 1).OrderByDescending(obj => Vector3.Distance(obj.transform.position, transform.position)).Take(5).ToList();
-            var target = tmpList[Random.Range(0, tmpList.Count)];
-            target = LevelController.Instance.Holes[2]; // TEST - Remove
-            agent.SetDestination(target.transform.position);
-            Debug.Log($"TEST - Agent destination:{agent.destination}");
+            var targetObj = tmpList[Random.Range(0, tmpList.Count)];
+            targetObj = LevelController.Instance.Holes[1]; // TEST - Remove
+
+            agent.SetDestination(targetObj.transform.position);
+
+            // NavMesh.CalculatePath(transform.position, target.transform.position, NavMesh.AllAreas, cachedPath);
+
+            cachedPath = new NavMeshPath();
+            // Debug.Log($"TEST - Path:{cachedPath.status}");
+            // //agent.SetDestination(target.transform.position);
+            // Debug.Log($"TEST - Agent destination:{agent.destination}");
+            // playerObstacle = PlayerController.Instance.GetComponent<NavMeshObstacle>();
         }
 
-        void FixedUpdate()
+        void Update()
         {
             switch (state)
             {
@@ -56,6 +74,47 @@ namespace SCAD
 
         void MoveToTargetHole()
         {
+
+            if (agent.pathPending)
+            {
+                Debug.Log($"TEST - Path pending");
+                return;
+            }
+
+            if (agent.hasPath)
+            {
+                Debug.Log($"TEST - Path completed");
+                var closest = GetClosestCornerId();
+                Debug.Log($"TEST - closest:{closest}");
+                Vector3 target = Vector3.zero;
+                bool hasTarget = false;
+                if (closest < agent.path.corners.Length - 1)
+                {
+                    hasTarget = true;
+                    target = agent.path.corners[closest + 1];
+                }
+
+                if (hasTarget)
+                {
+                    var dir = target - transform.position;
+                    dir.y = 0;
+                    transform.position += dir.normalized * agent.speed * Time.deltaTime;
+                }
+
+                if (IsDestinationReached())
+                {
+                    state = RatState.DestinationReached;
+                    LevelController.Instance.NotifyRatReachedTargetHole(gameObject);
+                }
+
+                return;
+            }
+
+            return;
+          
+
+          
+
             if (IsDestinationReached())
             {
                 state = RatState.DestinationReached;
@@ -63,8 +122,21 @@ namespace SCAD
                 return;
             }
 
-            if (agent.pathPending)
+            return;
+            if (Vector3.Distance(transform.position, PlayerController.Instance.transform.position) < playerObstacle.radius)
+            {
+                // Disable agent to avoid exiting the nav mesh
+
+            }
+
+            if (!agent.isOnNavMesh)
+            {
+                Debug.Log("TEST - Agent is out of navmesh");
                 return;
+            }
+
+            if (agent.pathPending)
+                    return;
 
             if (!agent.hasPath && !agent.pathPending)
             {
@@ -73,14 +145,24 @@ namespace SCAD
                 return;
             }
 
+            
+
             if (agent.pathStatus == NavMeshPathStatus.PathPartial || agent.pathStatus == NavMeshPathStatus.PathInvalid)
             {
                 Debug.Log("TEST - Partial or invalid path");
-                // Choose a destination
+                // Choose a new destination
+                var destination = agent.destination;
+
+                var l = LevelController.Instance.Holes.Where(obj => Vector3.Distance(obj.transform.position, destination) > 1).OrderByDescending(obj => Vector3.Distance(obj.transform.position, destination)).Take(5).ToList();
+
+                agent.ResetPath();
+
+                destination = l[Random.Range(0, l.Count)].transform.position;
+                agent.SetDestination(destination);
                 return;
             }
 
-
+            return;
             if (agent.hasPath)
             {
                 bool isSafe = PathIsSafe();
@@ -186,7 +268,7 @@ namespace SCAD
 
             if (agent.path.corners.Length < 1) return true;
 
-            if (Vector3.Distance(transform.position, PlayerController.Instance.transform.position) > sightRange) return true;
+            if (Vector3.Distance(transform.position, PlayerController.Instance.transform.position) > avoidanceRadius) return true;
 
             for (int i = 0; i < agent.path.corners.Length - 1; i++)
             {
@@ -210,12 +292,29 @@ namespace SCAD
             return true;
         }
 
+        int GetClosestCornerId()
+        {
+            int cosest = -1;
+            float minDist = 0;
+            for (int i = 0; i < agent.path.corners.Length; i++)
+            {
+                float dist = Vector3.Distance(transform.position, agent.path.corners[i]);
+                if (cosest < 0 || dist < minDist)
+                {
+                    cosest = i;
+                    minDist = dist;
+                }
+            }
+
+            return cosest;
+        }
+
         bool IsDestinationReached()
         {
             return Vector3.Distance(transform.position, agent.destination) < 0.1f;
         }
 
-      
+
     }
     
 }

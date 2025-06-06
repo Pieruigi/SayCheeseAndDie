@@ -57,7 +57,7 @@ namespace SCAD
                 // Get a random starting hole
                 var tmpList = holes.Where(h => Vector3.Distance(PlayerController.Instance.transform.position, h.transform.position) > minRatSpawnDistanceFromPlayer).ToList();
                 var hole = tmpList[Random.Range(0, tmpList.Count)];
-
+                hole = Holes[0]; // TEST - To remove
                 // Get the target hole
                 // tmpList = holes.OrderByDescending(obj => Vector3.Distance(obj.transform.position, hole.transform.position)).Take(5).ToList();
                 // var target = tmpList[Random.Range(0, tmpList.Count)];
